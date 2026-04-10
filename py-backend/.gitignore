@@ -5,6 +5,9 @@ __pycache__/
 build/
 dist/
 wheels/
+uploads/
+sample_data/
+test_photos/
 
 # Virtual environments
 .venv

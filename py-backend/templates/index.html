@@ -3,153 +3,211 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Smart Attendance Dashboard</title>
+  <title>Smart Attendance Control Room</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Manrope:wght@400;500;600;700;800&family=Sora:wght@500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="{{ url_for('static', filename='css/dashboard.css') }}">
 </head>
 <body>
-  <div class="bg-grid"></div>
-  <main class="layout">
+  <div class="page-shell">
     <header class="hero">
-      <p class="kicker">Smart Attendance</p>
-      <h1>Multimodal Session Control</h1>
-      <p class="sub">RFID-triggered sessions, SCRFD face detection, and embedding-based attendance in real time.</p>
-      <div class="stats">
-        <div class="stat"><span id="health">--</span><label>Service Health</label></div>
-        <div class="stat"><span id="embedder">--</span><label>Default Embedder</label></div>
-        <div class="stat"><span>/api</span><label>API Base</label></div>
+      <div>
+        <p class="eyebrow">RFID + Face Attendance</p>
+        <h1>Control room for seeding, sessions, ESP32 frames, and live face tests.</h1>
+        <p class="hero-copy">Use this page to seed sample data, register teachers and students, start attendance from RFID, upload ESP32-style frames, and verify results with photo cards and live camera capture.</p>
+      </div>
+      <div class="hero-panel">
+        <div class="metric">
+          <span id="health-status">--</span>
+          <label>Service health</label>
+        </div>
+        <div class="metric">
+          <span id="embedder-name">--</span>
+          <label>Embedder</label>
+        </div>
+        <div class="metric">
+          <span id="esp32-size">--</span>
+          <label>ESP32 frame size</label>
+        </div>
+        <div class="metric">
+          <span id="active-session-pill">none</span>
+          <label>Active session</label>
+        </div>
       </div>
     </header>
 
-    <section class="card card-wide">
-      <h2>Register Teacher RFID</h2>
-      <form id="teacher-form" class="form-grid">
-        <input name="name" placeholder="Teacher name" required>
-        <input name="email" type="email" placeholder="Teacher email" required>
-        <input name="rfid_uid" placeholder="RFID UID" required>
-        <button type="submit">Register Teacher</button>
-      </form>
+    <section class="grid two">
+      <article class="card accent-card">
+        <div class="card-head">
+          <div>
+            <p class="section-kicker">Quick actions</p>
+            <h2>Database and sample controls</h2>
+          </div>
+          <button id="reload-dashboard" type="button" class="ghost">Reload dashboard</button>
+        </div>
+        <div class="action-row">
+          <button id="seed-sample-btn" type="button" class="primary">Seed sample data</button>
+          <button id="clear-db-btn" type="button" class="danger">Clear database</button>
+        </div>
+        <div class="seed-box">
+          <div>
+            <label>Seed teacher</label>
+            <strong id="seed-teacher-name">--</strong>
+          </div>
+          <div>
+            <label>Email</label>
+            <span id="seed-teacher-email">--</span>
+          </div>
+          <div>
+            <label>RFID</label>
+            <span id="seed-teacher-rfid">--</span>
+          </div>
+        </div>
+        <p id="action-feedback" class="note"></p>
+      </article>
+
+      <article class="card">
+        <p class="section-kicker">Inventory</p>
+        <h2>Current data snapshot</h2>
+        <div class="summary-grid">
+          <div class="summary-box"><span id="summary-teachers">0</span><label>Teachers</label></div>
+          <div class="summary-box"><span id="summary-students">0</span><label>Students</label></div>
+          <div class="summary-box"><span id="summary-active-sessions">0</span><label>Active sessions</label></div>
+          <div class="summary-box"><span id="summary-records">0</span><label>Attendance records</label></div>
+          <div class="summary-box"><span id="summary-sample-folders">0</span><label>Sample folders</label></div>
+          <div class="summary-box"><span id="summary-test-photos">0</span><label>Test photos</label></div>
+        </div>
+      </article>
     </section>
 
-    <section class="card">
-      <h2>Start Session</h2>
-      <form id="session-form" class="form-grid">
-        <input name="teacher_rfid" placeholder="Teacher RFID" required>
-        <input name="duration_minutes" type="number" min="1" max="180" value="15" required>
-        <button type="submit">Start Session</button>
-      </form>
-      <p class="tiny" id="session-result"></p>
+    <section class="grid two">
+      <article class="card">
+        <p class="section-kicker">Teachers</p>
+        <h2>Teacher info input</h2>
+        <form id="teacher-form" class="form-grid">
+          <input name="name" placeholder="Teacher name" required>
+          <input name="email" type="email" placeholder="Teacher email" required>
+          <input name="rfid_uid" placeholder="Teacher RFID UID" required>
+          <button type="submit" class="primary">Save teacher</button>
+        </form>
+        <div id="teacher-list" class="stack-list"></div>
+      </article>
+
+      <article class="card">
+        <p class="section-kicker">Sessions</p>
+        <h2>Start attendance from RFID</h2>
+        <form id="rfid-session-form" class="form-grid">
+          <input name="rfid_uid" id="rfid-input" placeholder="Teacher RFID" required>
+          <input name="duration_minutes" type="number" min="1" max="180" value="15" required>
+          <button type="submit" class="primary">Start from RFID</button>
+        </form>
+        <div class="action-row compact">
+          <button id="quick-start-seed" type="button" class="ghost">Start using seeded RFID</button>
+        </div>
+        <form id="stop-form" class="form-grid">
+          <input name="session_id" id="stop-session-id" placeholder="Session ID to stop" required>
+          <button type="submit" class="ghost">Stop session</button>
+        </form>
+        <pre id="session-output" class="code-panel">No session activity yet.</pre>
+      </article>
     </section>
 
-    <section class="card">
-      <h2>Stop Session</h2>
-      <form id="stop-form" class="form-grid">
-        <input name="session_id" placeholder="Session ID" required>
-        <button type="submit">Stop Session</button>
-      </form>
-      <p class="tiny" id="stop-result"></p>
+    <section class="grid two">
+      <article class="card">
+        <p class="section-kicker">Students</p>
+        <h2>Student info and photo input</h2>
+        <form id="student-form" class="form-grid" enctype="multipart/form-data">
+          <input name="name" placeholder="Student name" required>
+          <input name="roll_no" placeholder="Roll no" required>
+          <input name="email" type="email" placeholder="Student email">
+          <input name="face_image" id="student-file-input" type="file" accept="image/*">
+          <button type="submit" class="primary">Register student</button>
+        </form>
+        <div class="camera-box">
+          <div class="camera-head">
+            <strong>Student camera capture</strong>
+            <div class="action-row compact">
+              <button id="student-camera-start" type="button" class="ghost">Start camera</button>
+              <button id="student-camera-capture" type="button" class="ghost">Capture photo</button>
+              <button id="student-camera-clear" type="button" class="ghost">Clear capture</button>
+            </div>
+          </div>
+          <div class="camera-grid">
+            <video id="student-video" autoplay playsinline muted></video>
+            <img id="student-preview" alt="Student preview">
+          </div>
+          <p class="note">Use either a file upload or the captured image above when registering a student.</p>
+        </div>
+      </article>
+
+      <article class="card">
+        <p class="section-kicker">ESP32 test</p>
+        <h2>Camera input to test face recognition</h2>
+        <form id="esp32-upload-form" class="form-grid" enctype="multipart/form-data">
+          <input name="session_id" id="esp32-session-id" placeholder="Active session ID" required>
+          <input name="frame" id="esp32-file-input" type="file" accept="image/*">
+          <button type="submit" class="primary">Upload ESP32 frame</button>
+        </form>
+        <div class="camera-box soft">
+          <div class="camera-head">
+            <strong>Live test camera</strong>
+            <div class="action-row compact">
+              <button id="esp32-camera-start" type="button" class="ghost">Start camera</button>
+              <button id="esp32-camera-capture" type="button" class="ghost">Capture frame</button>
+              <button id="esp32-camera-clear" type="button" class="ghost">Clear frame</button>
+            </div>
+          </div>
+          <div class="camera-grid">
+            <video id="esp32-video" autoplay playsinline muted></video>
+            <img id="esp32-preview" alt="ESP32 frame preview">
+          </div>
+          <p class="note">Captured frames are resized to the configured ESP32 dimensions before the backend processes them.</p>
+        </div>
+        <pre id="esp32-output" class="code-panel">No ESP32 frame uploaded yet.</pre>
+      </article>
     </section>
 
-    <section class="card card-wide">
-      <h2>Register Student</h2>
-      <form id="student-form" class="form-grid" enctype="multipart/form-data">
-        <input name="name" placeholder="Student name" required>
-        <input name="roll_no" placeholder="Roll no" required>
-        <input name="email" type="email" placeholder="Student email">
-        <input name="face_image" type="file" accept="image/*" required>
-        <button type="submit">Register Student Face</button>
-      </form>
+    <section class="grid two">
+      <article class="card">
+        <p class="section-kicker">Students view</p>
+        <h2>Registered students</h2>
+        <div id="student-cards" class="card-grid"></div>
+      </article>
+
+      <article class="card">
+        <p class="section-kicker">Sessions view</p>
+        <h2>Recent session history</h2>
+        <div id="session-cards" class="stack-list"></div>
+      </article>
     </section>
 
-    <section class="card card-wide">
-      <h2>Students</h2>
-      <button id="reload-students" class="ghost">Reload Students</button>
-      <pre id="students-view">[]</pre>
+    <section class="grid">
+      <article class="card">
+        <p class="section-kicker">Frame history</p>
+        <h2>Frames checked for a session</h2>
+        <p class="note">Pick a session from the session cards to inspect every stored frame and its recognition result.</p>
+        <div id="frame-history-list" class="stack-list"></div>
+      </article>
     </section>
-  </main>
 
-  <script>
-    async function api(path, opts = {}) {
-      const res = await fetch(path, opts);
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Request failed');
-      return data;
-    }
+    <section class="grid two">
+      <article class="card">
+        <p class="section-kicker">Sample data</p>
+        <h2>Seeder source folders</h2>
+        <p id="sample-data-path" class="path-line">--</p>
+        <div id="sample-data-list" class="stack-list"></div>
+      </article>
 
-    async function loadHealth() {
-      const h = await api('/health');
-      document.getElementById('health').textContent = h.status || '--';
-      document.getElementById('embedder').textContent = h.default_embedder || '--';
-    }
+      <article class="card">
+        <p class="section-kicker">Test photos</p>
+        <h2>Dummy sensor input folder</h2>
+        <p id="test-photos-path" class="path-line">--</p>
+        <div id="test-photo-list" class="stack-list"></div>
+      </article>
+    </section>
+  </div>
 
-    async function loadStudents() {
-      const data = await api('/api/students');
-      document.getElementById('students-view').textContent = JSON.stringify(data.students, null, 2);
-    }
-
-    document.getElementById('teacher-form').addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const form = new FormData(e.target);
-      try {
-        await api('/api/teacher/register', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(Object.fromEntries(form.entries()))
-        });
-        e.target.reset();
-      } catch (err) {
-        alert(err.message);
-      }
-    });
-
-    document.getElementById('session-form').addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const payload = Object.fromEntries(new FormData(e.target).entries());
-      payload.duration_minutes = Number(payload.duration_minutes);
-      try {
-        const data = await api('/api/session/start', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload)
-        });
-        document.getElementById('session-result').textContent = JSON.stringify(data, null, 2);
-      } catch (err) {
-        alert(err.message);
-      }
-    });
-
-    document.getElementById('stop-form').addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const payload = Object.fromEntries(new FormData(e.target).entries());
-      try {
-        const data = await api('/api/session/stop', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload)
-        });
-        document.getElementById('stop-result').textContent = JSON.stringify(data, null, 2);
-      } catch (err) {
-        alert(err.message);
-      }
-    });
-
-    document.getElementById('student-form').addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const form = new FormData(e.target);
-      try {
-        await api('/api/students/register', { method: 'POST', body: form });
-        await loadStudents();
-      } catch (err) {
-        alert(err.message);
-      }
-    });
-
-    document.getElementById('reload-students').addEventListener('click', loadStudents);
-
-    loadHealth().catch(() => {});
-    loadStudents().catch(() => {});
-  </script>
+  <script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
 </body>
 </html>

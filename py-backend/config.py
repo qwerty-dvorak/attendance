@@ -48,7 +48,17 @@ def _resolve_model_dir() -> Path:
     return (PROJECT_DIR / "models").resolve()
 
 
+def _resolve_dir(env_key: str, default_path: Path) -> str:
+    env_value = os.getenv(env_key)
+    candidate = Path(env_value).expanduser() if env_value else default_path
+    if not candidate.is_absolute():
+        candidate = (ROOT_DIR / candidate).resolve()
+    return str(candidate)
+
+
 class Config:
+    APP_NAME = os.getenv("APP_NAME", "Smart Attendance System")
+    APP_VERSION = os.getenv("APP_VERSION", "1.1.0")
     SECRET_KEY = os.getenv("SECRET_KEY", "dev-secret-key-change-in-production")
     SQLALCHEMY_DATABASE_URI = os.getenv(
         "DATABASE_URL", f"sqlite:///{(ROOT_DIR / 'attendance.db').as_posix()}"
@@ -58,8 +68,17 @@ class Config:
     SERVER_HOST = os.getenv("SERVER_HOST", "0.0.0.0")
     SERVER_PORT = int(os.getenv("SERVER_PORT", "5000"))
     DEBUG = os.getenv("DEBUG", "false").lower() == "true"
+    TESTING = os.getenv("TESTING", "false").lower() == "true"
+    BOOTSTRAP_FACE_SERVICE = (
+        os.getenv("BOOTSTRAP_FACE_SERVICE", "true").lower() == "true"
+    )
 
-    UPLOAD_FOLDER = str(ROOT_DIR / "uploads")
+    UPLOAD_FOLDER = _resolve_dir("UPLOAD_FOLDER", ROOT_DIR / "uploads")
+    STUDENT_UPLOAD_SUBDIR = os.getenv("STUDENT_UPLOAD_SUBDIR", "students")
+    SESSION_UPLOAD_SUBDIR = os.getenv("SESSION_UPLOAD_SUBDIR", "sessions")
+    SAMPLE_DATA_DIR = _resolve_dir("SAMPLE_DATA_DIR", ROOT_DIR / "sample_data")
+    TEST_PHOTOS_DIR = _resolve_dir("TEST_PHOTOS_DIR", ROOT_DIR / "test_photos")
+    DEFAULT_IMAGE_EXTENSION = os.getenv("DEFAULT_IMAGE_EXTENSION", ".jpg")
     MAX_CONTENT_LENGTH = 16 * 1024 * 1024
     ALLOWED_EXTENSIONS = {"png", "jpg", "jpeg", "gif", "webp"}
 
@@ -79,9 +98,42 @@ class Config:
     SESSION_DEFAULT_DURATION_MINUTES = int(
         os.getenv("SESSION_DEFAULT_DURATION_MINUTES", "15")
     )
+    SESSION_ID_PREFIX = os.getenv("SESSION_ID_PREFIX", "sess")
+    SESSION_STATUS_ACTIVE = os.getenv("SESSION_STATUS_ACTIVE", "active")
+    SESSION_STATUS_COMPLETED = os.getenv("SESSION_STATUS_COMPLETED", "completed")
+    SESSION_STATUS_INACTIVE = os.getenv("SESSION_STATUS_INACTIVE", "inactive")
+    ATTENDANCE_SOURCE_WEBSITE = os.getenv(
+        "ATTENDANCE_SOURCE_WEBSITE", "website_upload"
+    )
+    ATTENDANCE_SOURCE_ESP32 = os.getenv("ATTENDANCE_SOURCE_ESP32", "esp32_camera")
 
-    SENDER_EMAIL = os.getenv("SENDER_EMAIL", "")
-    SENDER_PASSWORD = os.getenv("SENDER_PASSWORD", "")
+    SAMPLE_TEACHER_NAME = os.getenv("SAMPLE_TEACHER_NAME", "Adheesh Garg")
+    SAMPLE_TEACHER_EMAIL = os.getenv(
+        "SAMPLE_TEACHER_EMAIL", "adheesh.garg2023@vitstudent.ac.in"
+    )
+    SAMPLE_TEACHER_RFID = os.getenv("SAMPLE_TEACHER_RFID", "123456")
+    SAMPLE_STUDENT_NAME_PREFIX = os.getenv("SAMPLE_STUDENT_NAME_PREFIX", "Student")
+    SAMPLE_STUDENT_ROLL_PREFIX = os.getenv("SAMPLE_STUDENT_ROLL_PREFIX", "SAMPLE")
+    SAMPLE_STUDENT_EMAIL_DOMAIN = os.getenv(
+        "SAMPLE_STUDENT_EMAIL_DOMAIN", "vitstudent.ac.in"
+    )
+
+    GMAIL_SENDER_EMAIL = os.getenv("GMAIL_SENDER_EMAIL", os.getenv("SENDER_EMAIL", ""))
+    GMAIL_APP_PASSWORD = os.getenv(
+        "GMAIL_APP_PASSWORD", os.getenv("SENDER_PASSWORD", "")
+    )
     SMTP_HOST = os.getenv("SMTP_HOST", "smtp.gmail.com")
     SMTP_PORT = int(os.getenv("SMTP_PORT", "587"))
     SMTP_USE_TLS = os.getenv("SMTP_USE_TLS", "true").lower() == "true"
+
+    RFID_UID_FIELD_NAME = os.getenv("RFID_UID_FIELD_NAME", "rfid_uid")
+    ESP32_FRAME_FIELD_NAME = os.getenv("ESP32_FRAME_FIELD_NAME", "frame")
+    ESP32_FRAME_FILENAME_PREFIX = os.getenv(
+        "ESP32_FRAME_FILENAME_PREFIX", "esp32_capture"
+    )
+    ESP32_FRAME_WIDTH = int(os.getenv("ESP32_FRAME_WIDTH", "320"))
+    ESP32_FRAME_HEIGHT = int(os.getenv("ESP32_FRAME_HEIGHT", "240"))
+    SIMULATOR_API_BASE_URL = os.getenv(
+        "SIMULATOR_API_BASE_URL", "http://127.0.0.1:5000"
+    )
+    SIMULATOR_TIMEOUT_SECONDS = int(os.getenv("SIMULATOR_TIMEOUT_SECONDS", "30"))

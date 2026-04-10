@@ -1,8 +1,13 @@
-from datetime import datetime
+import json
+from datetime import datetime, timezone
 
 import numpy as np
 
 from extensions import db
+
+
+def utc_now() -> datetime:
+    return datetime.now(timezone.utc)
 
 
 class Teacher(db.Model):
@@ -12,9 +17,14 @@ class Teacher(db.Model):
     name = db.Column(db.String(100), nullable=False)
     email = db.Column(db.String(255), nullable=False)
     rfid_uid = db.Column(db.String(20), unique=True, nullable=False)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    created_at = db.Column(db.DateTime(timezone=True), default=utc_now)
 
-    sessions = db.relationship("AttendanceSession", backref="teacher", lazy=True)
+    sessions = db.relationship(
+        "AttendanceSession",
+        backref="teacher",
+        lazy=True,
+        cascade="all, delete-orphan",
+    )
 
     def to_dict(self):
         return {
@@ -36,10 +46,13 @@ class Student(db.Model):
     face_embedding = db.Column(db.LargeBinary)
     embedding_model = db.Column(db.String(64), default="")
     face_image_path = db.Column(db.String(500))
-    registered_at = db.Column(db.DateTime, default=datetime.utcnow)
+    registered_at = db.Column(db.DateTime(timezone=True), default=utc_now)
 
     attendance_records = db.relationship(
-        "AttendanceRecord", backref="student", lazy=True
+        "AttendanceRecord",
+        backref="student",
+        lazy=True,
+        cascade="all, delete-orphan",
     )
 
     def to_dict(self):
@@ -72,11 +85,19 @@ class AttendanceSession(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     session_id = db.Column(db.String(50), unique=True, nullable=False)
     teacher_id = db.Column(db.Integer, db.ForeignKey("teachers.id"), nullable=False)
-    start_time = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
-    end_time = db.Column(db.DateTime)
+    start_time = db.Column(db.DateTime(timezone=True), nullable=False, default=utc_now)
+    end_time = db.Column(db.DateTime(timezone=True))
     status = db.Column(db.String(20), default="active")
 
-    records = db.relationship("AttendanceRecord", backref="session", lazy=True)
+    records = db.relationship(
+        "AttendanceRecord",
+        backref="session",
+        lazy=True,
+        cascade="all, delete-orphan",
+    )
+    frames = db.relationship(
+        "SessionFrame", backref="session", lazy=True, cascade="all, delete-orphan"
+    )
 
     def to_dict(self):
         return {
@@ -88,6 +109,7 @@ class AttendanceSession(db.Model):
             "end_time": self.end_time.isoformat() if self.end_time else None,
             "status": self.status,
             "attendance_count": len(self.records),
+            "frame_count": len(self.frames),
         }
 
 
@@ -99,7 +121,7 @@ class AttendanceRecord(db.Model):
         db.Integer, db.ForeignKey("attendance_sessions.id"), nullable=False
     )
     student_id = db.Column(db.Integer, db.ForeignKey("students.id"), nullable=False)
-    timestamp = db.Column(db.DateTime, default=datetime.utcnow)
+    timestamp = db.Column(db.DateTime(timezone=True), default=utc_now)
     confidence = db.Column(db.Float)
     source = db.Column(db.String(20), default="face_recognition")
 
@@ -117,4 +139,49 @@ class AttendanceRecord(db.Model):
             "timestamp": self.timestamp.isoformat() if self.timestamp else None,
             "confidence": self.confidence,
             "source": self.source,
+        }
+
+
+class SessionFrame(db.Model):
+    __tablename__ = "session_frames"
+
+    id = db.Column(db.Integer, primary_key=True)
+    session_id = db.Column(
+        db.Integer, db.ForeignKey("attendance_sessions.id"), nullable=False
+    )
+    image_path = db.Column(db.String(500), nullable=False)
+    source = db.Column(db.String(32), nullable=False)
+    processed_at = db.Column(db.DateTime(timezone=True), default=utc_now)
+    faces_detected = db.Column(db.Integer, default=0)
+    recognized_count = db.Column(db.Integer, default=0)
+    new_records_count = db.Column(db.Integer, default=0)
+    duplicate_count = db.Column(db.Integer, default=0)
+    all_detections_json = db.Column(db.Text, default="[]")
+    matched_students_json = db.Column(db.Text, default="[]")
+    new_records_json = db.Column(db.Text, default="[]")
+    duplicate_matches_json = db.Column(db.Text, default="[]")
+
+    def _decode(self, raw: str):
+        if not raw:
+            return []
+        try:
+            return json.loads(raw)
+        except json.JSONDecodeError:
+            return []
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "session_id": self.session_id,
+            "image_path": self.image_path,
+            "processed_at": self.processed_at.isoformat() if self.processed_at else None,
+            "source": self.source,
+            "faces_detected": self.faces_detected,
+            "recognized_count": self.recognized_count,
+            "new_records_count": self.new_records_count,
+            "duplicate_count": self.duplicate_count,
+            "all_detections": self._decode(self.all_detections_json),
+            "matched_students": self._decode(self.matched_students_json),
+            "new_records": self._decode(self.new_records_json),
+            "duplicate_matches": self._decode(self.duplicate_matches_json),
         }

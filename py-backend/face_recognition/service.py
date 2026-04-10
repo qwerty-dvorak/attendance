@@ -112,6 +112,8 @@ class FaceRecognitionService:
             emb = s.get_embedding()
             if emb is None:
                 continue
+            if s.embedding_model and s.embedding_model != requested_embedder:
+                continue
             candidates.append((s, emb.astype(np.float32)))
 
         matches: list[MatchResult] = []

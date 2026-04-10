@@ -12,8 +12,15 @@ class EmailService:
     def __init__(self, config):
         self.config = config
 
+    def _cfg(self, key: str, default=None):
+        if isinstance(self.config, dict):
+            return self.config.get(key, default)
+        return getattr(self.config, key, default)
+
     def configured(self) -> bool:
-        return bool(self.config.SENDER_EMAIL and self.config.SENDER_PASSWORD)
+        return bool(
+            self._cfg("GMAIL_SENDER_EMAIL", "") and self._cfg("GMAIL_APP_PASSWORD", "")
+        )
 
     def _session_csv(
         self, session: AttendanceSession, records: list[AttendanceRecord]
@@ -55,7 +62,7 @@ class EmailService:
 
         msg = EmailMessage()
         msg["Subject"] = f"Attendance Report - {session.session_id}"
-        msg["From"] = self.config.SENDER_EMAIL
+        msg["From"] = self._cfg("GMAIL_SENDER_EMAIL", "")
         msg["To"] = session.teacher.email
 
         text = "\n".join(
@@ -84,10 +91,15 @@ class EmailService:
         )
 
         with smtplib.SMTP(
-            self.config.SMTP_HOST, self.config.SMTP_PORT, timeout=20
+            self._cfg("SMTP_HOST", "smtp.gmail.com"),
+            self._cfg("SMTP_PORT", 587),
+            timeout=20,
         ) as server:
-            if self.config.SMTP_USE_TLS:
+            if self._cfg("SMTP_USE_TLS", True):
                 server.starttls()
-            server.login(self.config.SENDER_EMAIL, self.config.SENDER_PASSWORD)
+            server.login(
+                self._cfg("GMAIL_SENDER_EMAIL", ""),
+                self._cfg("GMAIL_APP_PASSWORD", ""),
+            )
             server.send_message(msg)
         return True

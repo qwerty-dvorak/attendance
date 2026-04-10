@@ -1,10 +1,11 @@
 import os
 
-from flask import Flask, render_template
+from flask import Flask, render_template, send_from_directory
 from flask_cors import CORS
 
 from config import Config
 from extensions import db
+from services.data_management import ensure_storage_dirs
 from services.runtime import get_attendance_service, reset_attendance_service
 
 
@@ -15,19 +16,20 @@ def create_app(config_class=Config):
     CORS(app, resources={r"/api/*": {"origins": "*"}})
     db.init_app(app)
 
+    from api.admin import admin_bp
     from api.attendance import attendance_bp
+    from api.device import device_bp
     from api.session import session_bp
     from api.students import students_bp
     from api.teacher import teacher_bp
 
+    app.register_blueprint(admin_bp, url_prefix="/api")
     app.register_blueprint(session_bp, url_prefix="/api")
     app.register_blueprint(attendance_bp, url_prefix="/api")
     app.register_blueprint(students_bp, url_prefix="/api")
     app.register_blueprint(teacher_bp, url_prefix="/api")
+    app.register_blueprint(device_bp, url_prefix="/api")
 
-    os.makedirs(app.config["UPLOAD_FOLDER"], exist_ok=True)
-    os.makedirs(os.path.join(app.config["UPLOAD_FOLDER"], "students"), exist_ok=True)
-    os.makedirs(os.path.join(app.config["UPLOAD_FOLDER"], "sessions"), exist_ok=True)
     os.makedirs(app.static_folder or "static", exist_ok=True)
 
     @app.route("/")
@@ -38,9 +40,13 @@ def create_app(config_class=Config):
     def api_info():
         return {
             "status": "online",
-            "service": "Smart Attendance System",
-            "version": "1.0.0",
+            "service": app.config["APP_NAME"],
+            "version": app.config["APP_VERSION"],
         }
+
+    @app.route("/media/uploads/<path:filename>")
+    def media_upload(filename: str):
+        return send_from_directory(app.config["UPLOAD_FOLDER"], filename)
 
     @app.route("/health")
     def health():
@@ -57,6 +63,10 @@ def create_app(config_class=Config):
             "database": "ready",
             "detection_model": "scrfd",
             "default_embedder": app.config["DEFAULT_EMBEDDER"],
+            "esp32_frame_size": {
+                "width": app.config["ESP32_FRAME_WIDTH"],
+                "height": app.config["ESP32_FRAME_HEIGHT"],
+            },
             "face_service_ready": face_service_ready,
             "face_service_error": face_service_error,
         }
@@ -64,11 +74,13 @@ def create_app(config_class=Config):
     with app.app_context():
         import models  # noqa: F401
 
+        ensure_storage_dirs()
         db.create_all()
         reset_attendance_service()
-        try:
-            get_attendance_service()
-        except Exception as exc:  # pragma: no cover
-            app.logger.warning("Face service bootstrap failed: %s", exc)
+        if app.config["BOOTSTRAP_FACE_SERVICE"]:
+            try:
+                get_attendance_service()
+            except Exception as exc:  # pragma: no cover
+                app.logger.warning("Face service bootstrap failed: %s", exc)
 
     return app

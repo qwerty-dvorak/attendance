@@ -18,3 +18,8 @@ def get_attendance_service() -> AttendanceService:
 def reset_attendance_service() -> None:
     global _SERVICE
     _SERVICE = None
+
+
+def set_attendance_service(service: AttendanceService | None) -> None:
+    global _SERVICE
+    _SERVICE = service

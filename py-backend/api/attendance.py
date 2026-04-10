@@ -1,12 +1,13 @@
 from __future__ import annotations
 
 import os
-from datetime import datetime
+from datetime import datetime, timezone
 from uuid import uuid4
 
 from flask import Blueprint, current_app, jsonify, request
 
 from models import AttendanceRecord, AttendanceSession, Student
+from services.data_management import serialize_session, serialize_student
 from services.runtime import get_attendance_service
 
 attendance_bp = Blueprint("attendance", __name__)
@@ -22,11 +23,16 @@ def upload_attendance_image():
         return jsonify({"success": False, "error": "image is required"}), 400
 
     session_dir = os.path.join(
-        current_app.config["UPLOAD_FOLDER"], "sessions", session_id
+        current_app.config["UPLOAD_FOLDER"],
+        current_app.config["SESSION_UPLOAD_SUBDIR"],
+        session_id,
     )
     os.makedirs(session_dir, exist_ok=True)
-    ext = os.path.splitext(image.filename or "")[1].lower() or ".jpg"
-    timestamp = datetime.utcnow().strftime("%Y%m%d_%H%M%S_%f")
+    ext = (
+        os.path.splitext(image.filename or "")[1].lower()
+        or current_app.config["DEFAULT_IMAGE_EXTENSION"]
+    )
+    timestamp = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S_%f")
     filename = f"capture_{timestamp}_{uuid4().hex[:6]}{ext}"
     image_path = os.path.join(session_dir, filename)
     image.save(image_path)
@@ -38,7 +44,11 @@ def upload_attendance_image():
         return jsonify({"success": False, "error": str(exc)}), 500
 
     try:
-        matches, inserted = service.process_attendance_image(session_id, image_path)
+        result = service.process_attendance_image(
+            session_id,
+            image_path,
+            source=current_app.config["ATTENDANCE_SOURCE_WEBSITE"],
+        )
     except ValueError as exc:
         return jsonify({"success": False, "error": str(exc)}), 404
     except Exception as exc:
@@ -47,9 +57,20 @@ def upload_attendance_image():
     return jsonify(
         {
             "success": True,
-            "faces_detected": len(matches),
-            "matched_students": [service.serialize_match(match) for match in inserted],
-            "all_detections": [service.serialize_match(match) for match in matches],
+            "faces_detected": len(result["matches"]),
+            "matched_students": [
+                service.serialize_match(match) for match in result["recognized"]
+            ],
+            "new_attendance_records": [
+                service.serialize_match(match) for match in result["inserted"]
+            ],
+            "duplicate_matches": [
+                service.serialize_match(match) for match in result["duplicates"]
+            ],
+            "frame": result["frame"].to_dict(),
+            "all_detections": [
+                service.serialize_match(match) for match in result["matches"]
+            ],
         }
     )
 
@@ -63,19 +84,33 @@ def get_attendance(session_id: str):
     records = AttendanceRecord.query.filter_by(session_id=session.id).all()
     students = Student.query.all()
     present_ids = {record.student_id for record in records}
-    present = [student.to_dict() for student in students if student.id in present_ids]
+    present = [serialize_student(student) for student in students if student.id in present_ids]
     absent = [
-        student.to_dict() for student in students if student.id not in present_ids
+        serialize_student(student) for student in students if student.id not in present_ids
     ]
     return jsonify(
         {
             "success": True,
-            "session": session.to_dict(),
+            "session": serialize_session(session),
             "records": [record.to_dict() for record in records],
             "present": present,
             "absent": absent,
         }
     )
+
+
+@attendance_bp.get("/attendance/<session_id>/frames")
+def get_session_frames(session_id: str):
+    try:
+        service = get_attendance_service()
+        session, frames = service.list_session_frames(session_id)
+    except RuntimeError as exc:
+        current_app.logger.exception("Face service unavailable")
+        return jsonify({"success": False, "error": str(exc)}), 500
+    except ValueError as exc:
+        return jsonify({"success": False, "error": str(exc)}), 404
+
+    return jsonify({"success": True, "session": serialize_session(session), "frames": frames})
 
 
 @attendance_bp.post("/attendance/benchmark")
