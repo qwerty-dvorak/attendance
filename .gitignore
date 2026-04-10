@@ -1,0 +1,4 @@
+.ruff-cache/
+.cache/
+models/
+report/*.bak*

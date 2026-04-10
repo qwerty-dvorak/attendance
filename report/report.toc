@@ -1,0 +1,52 @@
+\contentsline {section}{\numberline {1}Introduction}{1}{section.1}%
+\contentsline {section}{\numberline {2}Literature Survey}{2}{section.2}%
+\contentsline {subsection}{\numberline {2.1}Overview of Attendance Systems}{2}{subsection.2.1}%
+\contentsline {subsection}{\numberline {2.2}Existing Approaches}{2}{subsection.2.2}%
+\contentsline {subsubsection}{\numberline {2.2.1}RFID-Based Systems}{2}{subsubsection.2.2.1}%
+\contentsline {subsubsection}{\numberline {2.2.2}Biometric Fingerprint Systems}{2}{subsubsection.2.2.2}%
+\contentsline {subsubsection}{\numberline {2.2.3}Facial Recognition Systems}{2}{subsubsection.2.2.3}%
+\contentsline {subsection}{\numberline {2.3}Multimodal Approaches}{2}{subsection.2.3}%
+\contentsline {subsection}{\numberline {2.4}Gap Analysis}{2}{subsection.2.4}%
+\contentsline {subsection}{\numberline {2.5}Relevant Technologies}{3}{subsection.2.5}%
+\contentsline {subsubsection}{\numberline {2.5.1}SCRFD Face Detection}{3}{subsubsection.2.5.1}%
+\contentsline {subsubsection}{\numberline {2.5.2}ArcFace Recognition}{3}{subsubsection.2.5.2}%
+\contentsline {section}{\numberline {3}Methodology}{4}{section.3}%
+\contentsline {subsection}{\numberline {3.1}System Overview}{4}{subsection.3.1}%
+\contentsline {subsection}{\numberline {3.2}Workflow}{4}{subsection.3.2}%
+\contentsline {subsubsection}{\numberline {3.2.1}Step 1: Teacher RFID Authentication}{4}{subsubsection.3.2.1}%
+\contentsline {subsubsection}{\numberline {3.2.2}Step 2: Session Initialization}{4}{subsubsection.3.2.2}%
+\contentsline {subsubsection}{\numberline {3.2.3}Step 3: Image Capture}{5}{subsubsection.3.2.3}%
+\contentsline {subsubsection}{\numberline {3.2.4}Step 4: Face Detection and Recognition}{5}{subsubsection.3.2.4}%
+\contentsline {subsubsection}{\numberline {3.2.5}Step 5: Attendance Recording}{5}{subsubsection.3.2.5}%
+\contentsline {subsubsection}{\numberline {3.2.6}Step 6: Session Completion}{5}{subsubsection.3.2.6}%
+\contentsline {subsection}{\numberline {3.3}Data Flow Diagram}{5}{subsection.3.3}%
+\contentsline {section}{\numberline {4}Hardware and Software Used}{6}{section.4}%
+\contentsline {subsection}{\numberline {4.1}Hardware Components}{6}{subsection.4.1}%
+\contentsline {subsubsection}{\numberline {4.1.1}ESP32 DevKit v1}{6}{subsubsection.4.1.1}%
+\contentsline {subsubsection}{\numberline {4.1.2}RC522 RFID Module}{6}{subsubsection.4.1.2}%
+\contentsline {subsubsection}{\numberline {4.1.3}ESP32-CAM Module}{7}{subsubsection.4.1.3}%
+\contentsline {subsection}{\numberline {4.2}Software Stack}{8}{subsection.4.2}%
+\contentsline {subsubsection}{\numberline {4.2.1}Firmware Development}{8}{subsubsection.4.2.1}%
+\contentsline {subsubsection}{\numberline {4.2.2}Backend Server}{8}{subsubsection.4.2.2}%
+\contentsline {subsubsection}{\numberline {4.2.3}Face Recognition Models}{8}{subsubsection.4.2.3}%
+\contentsline {section}{\numberline {5}Circuit Design}{9}{section.5}%
+\contentsline {subsection}{\numberline {5.1}Circuit Diagram}{9}{subsection.5.1}%
+\contentsline {subsection}{\numberline {5.2}Pin Connections}{9}{subsection.5.2}%
+\contentsline {subsubsection}{\numberline {5.2.1}ESP32 to RC522 RFID Module}{9}{subsubsection.5.2.1}%
+\contentsline {subsubsection}{\numberline {5.2.2}ESP32 to ESP32-CAM Module}{10}{subsubsection.5.2.2}%
+\contentsline {subsection}{\numberline {5.3}Power Requirements}{10}{subsection.5.3}%
+\contentsline {section}{\numberline {6}Result and Discussion}{11}{section.6}%
+\contentsline {subsection}{\numberline {6.1}Prototype Implementation}{11}{subsection.6.1}%
+\contentsline {subsection}{\numberline {6.2}Performance Metrics}{11}{subsection.6.2}%
+\contentsline {subsubsection}{\numberline {6.2.1}Face Recognition Accuracy}{11}{subsubsection.6.2.1}%
+\contentsline {subsection}{\numberline {6.3}System Response Times}{12}{subsection.6.3}%
+\contentsline {subsection}{\numberline {6.4}Attendance Dashboard}{12}{subsection.6.4}%
+\contentsline {subsection}{\numberline {6.5}Email Report Sample}{13}{subsection.6.5}%
+\contentsline {subsection}{\numberline {6.6}Discussion}{14}{subsection.6.6}%
+\contentsline {section}{\numberline {7}Conclusion}{15}{section.7}%
+\contentsline {subsection}{\numberline {7.1}Future Enhancements}{15}{subsection.7.1}%
+\contentsline {section}{\numberline {8}List of References}{16}{section.8}%
+\contentsline {section}{\numberline {9}Appendices}{17}{section.9}%
+\contentsline {subsection}{\numberline {9.1}Appendix A: Source Code Structure}{17}{subsection.9.1}%
+\contentsline {subsection}{\numberline {9.2}Appendix B: Circuit Schematic}{17}{subsection.9.2}%
+\contentsline {subsection}{\numberline {9.3}Appendix C: Database Schema}{17}{subsection.9.3}%

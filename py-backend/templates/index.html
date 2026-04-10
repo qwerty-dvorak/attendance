@@ -1,0 +1,155 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Smart Attendance Dashboard</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/dashboard.css') }}">
+</head>
+<body>
+  <div class="bg-grid"></div>
+  <main class="layout">
+    <header class="hero">
+      <p class="kicker">Smart Attendance</p>
+      <h1>Multimodal Session Control</h1>
+      <p class="sub">RFID-triggered sessions, SCRFD face detection, and embedding-based attendance in real time.</p>
+      <div class="stats">
+        <div class="stat"><span id="health">--</span><label>Service Health</label></div>
+        <div class="stat"><span id="embedder">--</span><label>Default Embedder</label></div>
+        <div class="stat"><span>/api</span><label>API Base</label></div>
+      </div>
+    </header>
+
+    <section class="card card-wide">
+      <h2>Register Teacher RFID</h2>
+      <form id="teacher-form" class="form-grid">
+        <input name="name" placeholder="Teacher name" required>
+        <input name="email" type="email" placeholder="Teacher email" required>
+        <input name="rfid_uid" placeholder="RFID UID" required>
+        <button type="submit">Register Teacher</button>
+      </form>
+    </section>
+
+    <section class="card">
+      <h2>Start Session</h2>
+      <form id="session-form" class="form-grid">
+        <input name="teacher_rfid" placeholder="Teacher RFID" required>
+        <input name="duration_minutes" type="number" min="1" max="180" value="15" required>
+        <button type="submit">Start Session</button>
+      </form>
+      <p class="tiny" id="session-result"></p>
+    </section>
+
+    <section class="card">
+      <h2>Stop Session</h2>
+      <form id="stop-form" class="form-grid">
+        <input name="session_id" placeholder="Session ID" required>
+        <button type="submit">Stop Session</button>
+      </form>
+      <p class="tiny" id="stop-result"></p>
+    </section>
+
+    <section class="card card-wide">
+      <h2>Register Student</h2>
+      <form id="student-form" class="form-grid" enctype="multipart/form-data">
+        <input name="name" placeholder="Student name" required>
+        <input name="roll_no" placeholder="Roll no" required>
+        <input name="email" type="email" placeholder="Student email">
+        <input name="face_image" type="file" accept="image/*" required>
+        <button type="submit">Register Student Face</button>
+      </form>
+    </section>
+
+    <section class="card card-wide">
+      <h2>Students</h2>
+      <button id="reload-students" class="ghost">Reload Students</button>
+      <pre id="students-view">[]</pre>
+    </section>
+  </main>
+
+  <script>
+    async function api(path, opts = {}) {
+      const res = await fetch(path, opts);
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Request failed');
+      return data;
+    }
+
+    async function loadHealth() {
+      const h = await api('/health');
+      document.getElementById('health').textContent = h.status || '--';
+      document.getElementById('embedder').textContent = h.default_embedder || '--';
+    }
+
+    async function loadStudents() {
+      const data = await api('/api/students');
+      document.getElementById('students-view').textContent = JSON.stringify(data.students, null, 2);
+    }
+
+    document.getElementById('teacher-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const form = new FormData(e.target);
+      try {
+        await api('/api/teacher/register', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(Object.fromEntries(form.entries()))
+        });
+        e.target.reset();
+      } catch (err) {
+        alert(err.message);
+      }
+    });
+
+    document.getElementById('session-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const payload = Object.fromEntries(new FormData(e.target).entries());
+      payload.duration_minutes = Number(payload.duration_minutes);
+      try {
+        const data = await api('/api/session/start', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        document.getElementById('session-result').textContent = JSON.stringify(data, null, 2);
+      } catch (err) {
+        alert(err.message);
+      }
+    });
+
+    document.getElementById('stop-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const payload = Object.fromEntries(new FormData(e.target).entries());
+      try {
+        const data = await api('/api/session/stop', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        document.getElementById('stop-result').textContent = JSON.stringify(data, null, 2);
+      } catch (err) {
+        alert(err.message);
+      }
+    });
+
+    document.getElementById('student-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const form = new FormData(e.target);
+      try {
+        await api('/api/students/register', { method: 'POST', body: form });
+        await loadStudents();
+      } catch (err) {
+        alert(err.message);
+      }
+    });
+
+    document.getElementById('reload-students').addEventListener('click', loadStudents);
+
+    loadHealth().catch(() => {});
+    loadStudents().catch(() => {});
+  </script>
+</body>
+</html>
